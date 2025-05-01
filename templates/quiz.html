@@ -1,0 +1,62 @@
+<!-- 答题页 -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>QuickMath - 在线答题</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container mt-4">
+    <h2 class="mb-3">速算答题</h2>
+    <div class="mb-2">
+        <span id="timer" class="badge bg-info text-dark">00:00</span>
+        <button class="btn btn-secondary btn-sm ms-2" onclick="location.reload()">刷新页面</button>
+    </div>
+    <form id="quiz-form" method="post" action="{{ url_for('submit') }}">
+        <div id="questions-list">
+            {# 题目将在后端渲染 #}
+            {% for q in questions %}
+                <div class="card mb-3 quiz-card mx-auto" style="max-width: 520px;">
+                    <div class="card-body py-3">
+                        <div class="row align-items-center">
+                            <div class="col-auto d-flex align-items-center">
+                                <span class="badge bg-secondary me-3">题{{ loop.index }}</span>
+                                <span class="quiz-stem">{{ q.stem }}</span>
+                            </div>
+                            <div class="col text-end">
+                                {% if q.type == 'addsub2' or q.type == 'addsub3' %}
+                                    <div class="d-flex justify-content-end gap-2">
+                                        <input type="text" class="form-control answer-input quiz-input" name="answer_{{ q.id }}_1" autocomplete="off" placeholder="加">
+                                        <input type="text" class="form-control answer-input quiz-input" name="answer_{{ q.id }}_2" autocomplete="off" placeholder="减">
+                                    </div>
+                                {% elif q.type == 'div2' %}
+                                    <div class="d-flex justify-content-end">
+                                        <input type="text" class="form-control answer-input quiz-input" name="answer_{{ q.id }}" autocomplete="off" placeholder="首位">
+                                    </div>
+                                {% elif q.type == 'div3' %}
+                                    <div class="d-flex justify-content-end">
+                                        <input type="text" class="form-control answer-input quiz-input" name="answer_{{ q.id }}" autocomplete="off" placeholder="两位">
+                                    </div>
+                                {% else %}
+                                    <div class="d-flex justify-content-end">
+                                        <input type="text" class="form-control answer-input quiz-input" name="answer_{{ q.id }}" autocomplete="off">
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="d-flex justify-content-center mt-3">
+            <button type="submit" class="btn btn-success w-75">提交</button>
+        </div>
+    </form>
+</div>
+<!-- 自定义数字键盘容器 -->
+<div id="custom-keyboard" style="display:none"></div>
+<script src="{{ url_for('static', filename='js/quiz.js') }}"></script>
+</body>
+</html>
