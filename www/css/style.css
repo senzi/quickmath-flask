@@ -1,0 +1,74 @@
+/* QuickMath 基础样式与移动端适配 */
+body {
+    background: #f8f9fa;
+    font-family: "Microsoft YaHei", Arial, sans-serif;
+    overflow-x: hidden;
+}
+html {
+    overflow-x: hidden;
+}
+.card {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+#timer {
+    font-size: 1.1rem;
+    padding: 0.4em 1em;
+}
+.quiz-card {
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.quiz-input {
+    max-width: 100px;
+    min-width: 60px;
+    display: inline-block;
+    text-align: right;
+}
+.quiz-stem {
+    margin-left: 4px;
+    margin-right: 8px;
+    font-size: 1.08em;
+}
+
+/* 自定义数字键盘样式 */
+#custom-keyboard {
+    position: fixed;
+    z-index: 9999;
+    width: 220px;
+    min-width: 180px;
+    max-width: 240px;
+    top: 50%;
+    /* left 由JS动态设置 */
+    transform: translateY(-50%);
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+    padding: 12px 10px 8px 10px;
+    display: none;
+    transition: box-shadow 0.2s;
+}
+#custom-keyboard .keyboard-row {
+    display: flex;
+    justify-content: stretch;
+    margin-bottom: 6px;
+}
+#custom-keyboard .keyboard-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 60px;
+    font-size: 1.3em;
+    margin: 2px;
+    padding: 0.6em 0.2em;
+    border: none;
+    border-radius: 6px;
+    background: #f1f3f4;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+#custom-keyboard .keyboard-btn:active {
+    background: #e0e0e0;
+}
+#custom-keyboard .keyboard-btn.wide {
+    flex: 2 1 0;
+}

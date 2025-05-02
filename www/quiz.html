@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>QuickMath - 在线答题</title>
+    <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+</head>
+<body>
+<div class="container mt-4">
+    <h2 class="mb-3">速算答题</h2>
+    <div class="mb-2">
+        <span id="timer" class="badge bg-info text-dark">00:00</span>
+        <button class="btn btn-secondary btn-sm ms-2" onclick="location.reload()">刷新页面</button>
+    </div>
+    <form id="quiz-form" autocomplete="off">
+        <div id="questions-list">
+            <!-- 题目将由 JS 动态生成 -->
+        </div>
+        <div class="d-flex justify-content-center mt-3">
+            <button type="submit" class="btn btn-success w-75">提交</button>
+        </div>
+    </form>
+</div>
+<!-- 自定义数字键盘容器 -->
+<div id="custom-keyboard" style="display:none"></div>
+<script src="./js/quiz.js"></script>
+<script>
+// 题型生成函数示例（可根据需要扩展）
+function generateQuestion(type, id) {
+    if (type === 'mul2x1') {
+        // 2位数 × 1位数
+        const a = Math.floor(Math.random() * 90 + 10);
+        const b = Math.floor(Math.random() * 9 + 1);
+        return {
+            id,
+            type,
+            stem: `${a} × ${b} = `,
+            answer: (a * b).toString()
+        };
+    } else if (type === 'addsub2') {
+        // 两位数加减混合，答两个
+        const a = Math.floor(Math.random() * 90 + 10);
+        const b = Math.floor(Math.random() * 90 + 10);
+        return {
+            id,
+            type,
+            stem: `${a}  ${b}`,
+            answer: [a + b, a - b]
+        };
+    } else if (type === 'addsub3') {
+        // 三位数加减混合，答两个
+        const a = Math.floor(Math.random() * 900 + 100);
+        const b = Math.floor(Math.random() * 900 + 100);
+        return {
+            id,
+            type,
+            stem: `${a}  ${b}`,
+            answer: [a + b, a - b]
+        };
+    } else if (type === 'div2') {
+        // 多位 ÷ 两位，答商首位
+        const divisor = Math.floor(Math.random() * 90 + 10);
+        const quotient = Math.floor(Math.random() * 90 + 10);
+        const dividend = divisor * quotient + Math.floor(Math.random() * divisor);
+        return {
+            id,
+            type,
+            stem: `${dividend} ÷ ${divisor} = `,
+            answer: quotient.toString()[0]
+        };
+    } else if (type === 'div3') {
+        // 多位 ÷ 三位，答商前两位
+        const divisor = Math.floor(Math.random() * 900 + 100);
+        const quotient = Math.floor(Math.random() * 90 + 10);
+        const dividend = divisor * quotient + Math.floor(Math.random() * divisor);
+        return {
+            id,
+            type,
+            stem: `${dividend} ÷ ${divisor} = `,
+            answer: quotient.toString().padStart(2, '0').slice(0,2)
+        };
+    }
+    return null;
+}
+
+// 渲染题目
+function renderQuestions(questions) {
+    const list = document.getElementById('questions-list');
+    list.innerHTML = '';
+    questions.forEach((q, idx) => {
+        let inputHtml = '';
+        if (q.type === 'addsub2' || q.type === 'addsub3') {
+            inputHtml = `
+                <div class="d-flex justify-content-end gap-2">
+                    <input type="text" class="form-control answer-input quiz-input" name="answer_${q.id}_1" autocomplete="off" placeholder="加">
+                    <input type="text" class="form-control answer-input quiz-input" name="answer_${q.id}_2" autocomplete="off" placeholder="减">
+                </div>
+            `;
+        } else if (q.type === 'div2') {
+            inputHtml = `
+                <div class="d-flex justify-content-end">
+                    <input type="text" class="form-control answer-input quiz-input" name="answer_${q.id}" autocomplete="off" placeholder="首位">
+                </div>
+            `;
+        } else if (q.type === 'div3') {
+            inputHtml = `
+                <div class="d-flex justify-content-end">
+                    <input type="text" class="form-control answer-input quiz-input" name="answer_${q.id}" autocomplete="off" placeholder="两位">
+                </div>
+            `;
+        } else {
+            inputHtml = `
+                <div class="d-flex justify-content-end">
+                    <input type="text" class="form-control answer-input quiz-input" name="answer_${q.id}" autocomplete="off">
+                </div>
+            `;
+        }
+        list.innerHTML += `
+            <div class="card mb-3 quiz-card mx-auto" style="max-width: 520px;">
+                <div class="card-body py-3">
+                    <div class="row align-items-center">
+                        <div class="col-auto d-flex align-items-center">
+                            <span class="badge bg-secondary me-3">题${idx + 1}</span>
+                            <span class="quiz-stem">${q.stem}</span>
+                        </div>
+                        <div class="col text-end">
+                            ${inputHtml}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+}
+
+// 入口逻辑
+(function() {
+    // 读取配置
+    let config = localStorage.getItem('quickmath_config');
+    if (!config) {
+        alert('未找到题目配置，请先选择题型');
+        window.location.href = 'index.html';
+        return;
+    }
+    config = JSON.parse(config);
+    // 生成题目
+    let questions = [];
+    let id = 1;
+    config.modules.forEach(mod => {
+        for (let i = 0; i < mod.count; i++) {
+            questions.push(generateQuestion(mod.type, id++));
+        }
+    });
+    // 乱序
+    if (config.shuffle) {
+        questions = questions.sort(() => Math.random() - 0.5);
+    }
+    // 保存题目到 localStorage
+    localStorage.setItem('quickmath_current', JSON.stringify({
+        questions,
+        start: new Date().toISOString()
+    }));
+    // 渲染
+    renderQuestions(questions);
+    // 计时器、输入自动保存等由 quiz.js 负责
+    // 提交事件
+    document.getElementById('quiz-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        // 保存当前答案
+        const answers = {};
+        document.querySelectorAll('.answer-input').forEach(input => {
+            answers[input.name] = input.value;
+        });
+        // 记录用时
+        const elapsed = parseInt(localStorage.getItem('quickmath-timer') || '0');
+        // 更新 current
+        let current = JSON.parse(localStorage.getItem('quickmath_current'));
+        current.userAnswers = answers;
+        current.elapsed = elapsed;
+        localStorage.setItem('quickmath_current', JSON.stringify(current));
+        window.location.href = 'result.html';
+    });
+})();
+</script>
+</body>
+</html>

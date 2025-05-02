@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>QuickMath - 历史记录</title>
+    <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+</head>
+<body>
+<div class="container mt-4 d-flex flex-column align-items-center">
+    <h2 class="mb-3 text-center">历史记录</h2>
+    <div class="quiz-card card p-4 mb-4" style="max-width: 520px;">
+        <div class="d-flex flex-column align-items-center gap-2 mb-3">
+            <a href="index.html" class="btn btn-outline-primary w-75">返回首页</a>
+        </div>
+        <div class="mb-3 w-100" style="max-width:1200px;">
+            <canvas id="history-chart" height="180" style="width:100%;background:#f8fafc;border-radius:8px;box-shadow:0 1px 4px #0001"></canvas>
+        </div>
+        <div id="history-content">
+            <!-- 历史列表或详情 -->
+        </div>
+    </div>
+</div>
+<script>
+function formatConfigTags(modules) {
+    if (!modules || !modules.length) return '';
+    return modules.map(m => {
+        let name = '';
+        if (m.type === 'mul2x1') name = '两位×一位';
+        else if (m.type === 'addsub2') name = '两位加减';
+        else if (m.type === 'addsub3') name = '三位加减';
+        else if (m.type === 'div2') name = '多位÷两位(首位)';
+        else if (m.type === 'div3') name = '多位÷三位(前两位)';
+        return `<span class="badge bg-info text-dark mb-1">${name}×${m.count}</span>`;
+    }).join('<br>');
+}
+function renderHistoryList(history) {
+    let html = `
+    <div id="history-tip" class="mb-2 text-center text-success" style="min-height:1.5em"></div>
+    <div class="d-flex justify-content-end mb-2" style="max-width:900px">
+        <button class="btn btn-danger btn-sm" onclick="deleteAllHistory()">删除全部</button>
+    </div>
+    <div class="table-responsive" style="max-width: 1200px;">
+        <table class="table table-bordered text-center align-middle w-100">
+            <thead>
+                <tr>
+                    <th style="width: 120px;">用户名</th>
+                    <th style="width: 180px;">时间</th>
+                    <th style="width: 320px;">题型与题量</th>
+                    <th style="width: 80px;">得分</th>
+                    <th style="width: 80px;">正确率</th>
+                    <th style="width: 140px;">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    if (!history.length) {
+        html += `<tr><td colspan="6" class="text-muted">暂无历史记录</td></tr>`;
+    } else {
+        history.slice().reverse().forEach((h, idx) => {
+            html += `
+            <tr>
+                <td>${h.username || ''}</td>
+                <td>${h.date || ''}</td>
+                <td>${formatConfigTags(h.modules)}</td>
+                <td>${h.score || ''}</td>
+                <td>${h.percent != null ? h.percent + '%' : ''}</td>
+                <td>
+                    <button class="btn btn-sm btn-info me-1" onclick="showDetail(${history.length - 1 - idx})">详情</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteHistory(${history.length - 1 - idx})">删除</button>
+                </td>
+            </tr>
+            `;
+        });
+    }
+    html += `
+            </tbody>
+        </table>
+    </div>
+    `;
+    document.getElementById('history-content').innerHTML = html;
+    window.historyTip = document.getElementById('history-tip');
+}
+function renderHistoryDetail(record, idx) {
+    let html = `
+    <div class="mb-3 text-center">
+        <span class="badge bg-secondary">时间：${record.date || ''}</span>
+        <span class="badge bg-info ms-2">得分：${record.score || ''}</span>
+        <span class="badge bg-primary ms-2">正确率：${record.percent != null ? record.percent + '%' : ''}</span>
+        <div class="mt-2">题型与题量：${formatConfigTags(record.modules)}</div>
+    </div>
+    <div id="history-detail">
+    `;
+    // 逐题展示
+    (record.questions || []).forEach((q, i) => {
+        let user_ans, is_correct;
+        if (q.type === 'addsub2' || q.type === 'addsub3') {
+            user_ans = [
+                (record.userAnswers && record.userAnswers[`answer_${q.id}_1`]) ?? '',
+                (record.userAnswers && record.userAnswers[`answer_${q.id}_2`]) ?? ''
+            ];
+            is_correct = (user_ans[0] == q.answer[0] && user_ans[1] == q.answer[1]);
+        } else {
+            user_ans = (record.userAnswers && record.userAnswers[`answer_${q.id}`]) ?? '';
+            is_correct = (user_ans == q.answer);
+        }
+        let answerHtml = '';
+        if (q.type === 'addsub2' || q.type === 'addsub3') {
+            answerHtml = `
+                <span>你的答案：加 ${user_ans[0] ?? ''}，减 ${user_ans[1] ?? ''}</span>
+                <span class="ms-3">正确答案：加 ${q.answer[0]}，减 ${q.answer[1]}</span>
+            `;
+        } else {
+            answerHtml = `
+                <span>你的答案：${user_ans || '未作答'}</span>
+                <span class="ms-3">正确答案：${q.answer}</span>
+            `;
+        }
+        html += `
+        <div class="card mb-2 quiz-card" style="max-width: 480px;">
+            <div class="card-body py-2">
+                <div class="row align-items-center">
+                    <div class="col-auto d-flex align-items-center">
+                        <span class="badge bg-secondary me-3">题${i + 1}</span>
+                        <span class="quiz-stem">${q.stem}</span>
+                    </div>
+                    <div class="col text-end">
+                        ${is_correct
+                            ? '<span class="badge bg-success">✔ 正确</span>'
+                            : '<span class="badge bg-danger">✘ 错误</span>'}
+                    </div>
+                </div>
+                <div class="mt-2 small text-muted">
+                    ${answerHtml}
+                </div>
+            </div>
+        </div>
+        `;
+    });
+    html += `</div>
+    <div class="d-flex justify-content-center mt-3">
+        <button class="btn btn-outline-secondary w-75" onclick="renderHistoryList(window._historyData)">返回历史列表</button>
+    </div>
+    `;
+    document.getElementById('history-content').innerHTML = html;
+}
+function showDetail(idx) {
+    const history = window._historyData || [];
+    if (history[idx]) {
+        renderHistoryDetail(history[idx], idx);
+    }
+}
+function deleteHistory(idx) {
+    let history = window._historyData || [];
+    if (idx >= 0 && idx < history.length) {
+        history.splice(idx, 1);
+        localStorage.setItem('quickmath_history', JSON.stringify(history));
+        window._historyData = history;
+        renderHistoryList(history);
+        if (window.historyTip) window.historyTip.textContent = '已删除该条记录';
+    }
+}
+function deleteAllHistory() {
+    localStorage.removeItem('quickmath_history');
+    window._historyData = [];
+    renderHistoryList([]);
+    if (window.historyTip) window.historyTip.textContent = '已清空全部历史记录';
+}
+function drawHistoryChart(history) {
+    const canvas = document.getElementById('history-chart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    // 适配高分屏
+    const dpr = window.devicePixelRatio || 1;
+    const cssWidth = canvas.offsetWidth;
+    const cssHeight = canvas.offsetHeight;
+    canvas.width = cssWidth * dpr;
+    canvas.height = cssHeight * dpr;
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // 重置变换
+    ctx.scale(dpr, dpr);
+    // 清空
+    ctx.clearRect(0, 0, cssWidth, cssHeight);
+
+    // 取最近20条
+    const data = history.slice(-20);
+    const n = data.length;
+    if (n === 0) {
+        ctx.fillStyle = "#bbb";
+        ctx.font = "16px sans-serif";
+        ctx.fillText("暂无历史数据", 20, 40);
+        return;
+    }
+    // 坐标系
+    const padding = 20;
+    const chartH = cssHeight - 2 * padding;
+    const chartW = cssWidth - 2 * padding;
+    // Y轴
+    ctx.strokeStyle = "#bbb";
+    ctx.beginPath();
+    ctx.moveTo(padding, cssHeight - padding);
+    ctx.lineTo(padding, padding);
+    ctx.stroke();
+    // X轴
+    ctx.beginPath();
+    ctx.moveTo(padding, cssHeight - padding);
+    ctx.lineTo(padding + chartW, cssHeight - padding);
+    ctx.stroke();
+    // Y轴刻度
+    ctx.fillStyle = "#888";
+    ctx.font = "12px sans-serif";
+    for (let y = 0; y <= 100; y += 20) {
+        const yPos = padding + chartH * (1 - y / 100);
+        ctx.fillText(y + "%", 5, yPos + 4);
+        ctx.beginPath();
+        ctx.strokeStyle = "#eee";
+        ctx.moveTo(padding, yPos);
+        ctx.lineTo(padding + chartW, yPos);
+        ctx.stroke();
+    }
+    // X轴刻度（次序）
+    for (let i = 0; i < n; i++) {
+        const x = padding + chartW * i / (n - 1 || 1);
+        ctx.fillStyle = "#888";
+        ctx.font = "12px sans-serif";
+        ctx.save();
+        ctx.translate(x, cssHeight - padding + 16);
+        ctx.rotate(-Math.PI / 8);
+        ctx.fillText((i + 1).toString(), 0, 0);
+        ctx.restore();
+    }
+    // 折线
+    ctx.beginPath();
+    for (let i = 0; i < n; i++) {
+        const x = padding + chartW * i / (n - 1 || 1);
+        const y = padding + chartH * (1 - (data[i].percent || 0) / 100);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = "#1976d2";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    // 点
+    for (let i = 0; i < n; i++) {
+        const x = padding + chartW * i / (n - 1 || 1);
+        const y = padding + chartH * (1 - (data[i].percent || 0) / 100);
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, 2 * Math.PI);
+        ctx.fillStyle = "#1976d2";
+        ctx.fill();
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+    // 静态图，无交互
+    canvas.onmousemove = null;
+    canvas.onmouseleave = null;
+}
+(function() {
+    let history = [];
+    try {
+        history = JSON.parse(localStorage.getItem('quickmath_history') || '[]');
+    } catch {}
+    window._historyData = history;
+    renderHistoryList(history);
+    drawHistoryChart(history);
+    window.showDetail = showDetail;
+    window.deleteHistory = deleteHistory;
+    window.deleteAllHistory = deleteAllHistory;
+    window.addEventListener('resize', () => drawHistoryChart(window._historyData || []));
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>QuickMath - 速算模块选择</title>
+    <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+</head>
+<body>
+<div class="container mt-5 d-flex flex-column align-items-center">
+    <h2 class="mb-4 text-center">选择题型与题量</h2>
+    <div class="quiz-card card p-4 mb-4" style="max-width: 520px;">
+        <form id="configForm" autocomplete="off">
+            <div class="mb-3">
+                <label for="username" class="form-label">用户名：</label>
+                <input type="text" class="form-control" id="username" name="username" maxlength="16" placeholder="请输入用户名" style="max-width: 220px;">
+                <div id="username-tip" class="form-text text-danger" style="min-height:1.5em"></div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">题型模块（可多选）：</label>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="types" value="mul2x1" id="mul2x1">
+                    <label class="form-check-label" for="mul2x1">两位数 × 一位数乘法</label>
+                    <input type="number" name="count_mul2x1" min="1" max="50" value="10" class="ms-2" style="width: 70px;">
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="types" value="addsub2" id="addsub2">
+                    <label class="form-check-label" for="addsub2">两位数加减混合</label>
+                    <input type="number" name="count_addsub2" min="1" max="50" value="10" class="ms-2" style="width: 70px;">
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="types" value="addsub3" id="addsub3">
+                    <label class="form-check-label" for="addsub3">三位数加减混合</label>
+                    <input type="number" name="count_addsub3" min="1" max="50" value="10" class="ms-2" style="width: 70px;">
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="types" value="div2" id="div2">
+                    <label class="form-check-label" for="div2">多位数 ÷ 两位数（答商首位）</label>
+                    <input type="number" name="count_div2" min="1" max="50" value="10" class="ms-2" style="width: 70px;">
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="types" value="div3" id="div3">
+                    <label class="form-check-label" for="div3">多位数 ÷ 三位数（答商前两位）</label>
+                    <input type="number" name="count_div3" min="1" max="50" value="10" class="ms-2" style="width: 70px;">
+                </div>
+            </div>
+            <div class="form-check form-switch my-3">
+                <input class="form-check-input" type="checkbox" id="shuffle" name="shuffle" checked>
+                <label class="form-check-label" for="shuffle">乱序出题</label>
+            </div>
+            <div class="d-flex flex-column align-items-center gap-3">
+                <button type="submit" class="btn btn-primary w-75">开始答题</button>
+                <a href="history.html" class="btn btn-outline-secondary w-75">历史记录</a>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+const usernameInput = document.getElementById('username');
+const usernameTip = document.getElementById('username-tip');
+// 初始化用户名
+usernameInput.value = localStorage.getItem('quickmath_username') || '';
+usernameInput.addEventListener('blur', function() {
+    const val = usernameInput.value.trim();
+    if (val.length === 0) {
+        usernameTip.textContent = '用户名不能为空';
+    } else {
+        usernameTip.textContent = '';
+        localStorage.setItem('quickmath_username', val);
+    }
+});
+document.getElementById('configForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    // 检查用户名
+    const username = usernameInput.value.trim();
+    if (username.length === 0) {
+        usernameTip.textContent = '用户名不能为空';
+        usernameInput.focus();
+        return;
+    }
+    usernameTip.textContent = '';
+    localStorage.setItem('quickmath_username', username);
+    // 收集题型
+    const types = [];
+    const modules = [];
+    ['mul2x1','addsub2','addsub3','div2','div3'].forEach(type => {
+        const checked = document.getElementById(type).checked;
+        if (checked) {
+            types.push(type);
+            const count = parseInt(document.querySelector('input[name="count_' + type + '"]').value, 10) || 10;
+            modules.push({type, count});
+        }
+    });
+    if (modules.length === 0) {
+        usernameTip.textContent = '请至少选择一个题型模块';
+        return;
+    }
+    const shuffle = document.getElementById('shuffle').checked;
+    const config = {
+        modules,
+        shuffle
+    };
+    localStorage.setItem('quickmath_config', JSON.stringify(config));
+    window.location.href = 'quiz.html';
+});
+</script>
+</body>
+</html>
