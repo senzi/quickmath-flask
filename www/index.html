@@ -45,6 +45,11 @@
                     <label class="form-check-label" for="div3">多位数 ÷ 三位数（答商前两位）</label>
                     <input type="number" name="count_div3" min="1" max="50" value="10" class="ms-2" style="width: 70px;">
                 </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="types" value="4div4_choice" id="div4choice">
+                    <label class="form-check-label" for="div4choice">四位数除法速算选择题（四除四选择）</label>
+                    <input type="number" name="count_4div4_choice" min="1" max="50" value="10" class="ms-2" style="width: 70px;">
+                </div>
             </div>
             <div class="form-check form-switch my-3">
                 <input class="form-check-input" type="checkbox" id="shuffle" name="shuffle" checked>
@@ -85,8 +90,8 @@ document.getElementById('configForm').addEventListener('submit', function(e) {
     // 收集题型
     const types = [];
     const modules = [];
-    ['mul2x1','addsub2','addsub3','div2','div3'].forEach(type => {
-        const checked = document.getElementById(type).checked;
+    ['mul2x1','addsub2','addsub3','div2','div3','4div4_choice'].forEach(type => {
+        const checked = document.getElementById(type === '4div4_choice' ? 'div4choice' : type).checked;
         if (checked) {
             types.push(type);
             const count = parseInt(document.querySelector('input[name="count_' + type + '"]').value, 10) || 10;

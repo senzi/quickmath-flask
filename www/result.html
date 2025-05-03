@@ -66,7 +66,15 @@ function formatAnswer(type, ans) {
             stem: q.stem,
             user_answer: user_ans,
             answer: q.answer,
-            is_correct
+            is_correct,
+            ...(q.type === '4div4_choice' ? {
+                options: q.options,
+                question: (typeof q.question !== 'undefined' && q.question !== null)
+                    ? q.question
+                    : (typeof q.A !== 'undefined' && typeof q.B !== 'undefined'
+                        ? `${q.A} ÷ ${q.B} = ?`
+                        : '')
+            } : {})
         });
     });
     // 统计
@@ -81,7 +89,34 @@ function formatAnswer(type, ans) {
     const list = document.getElementById('result-list');
     results.forEach(r => {
         let answerHtml = '';
-        if (r.type === 'addsub2' || r.type === 'addsub3') {
+        if (r.type === '4div4_choice') {
+            // 四除四选择题：渲染选项按钮并高亮
+            const optionLabels = ['A', 'B', 'C', 'D'];
+            const options = r.options || [];
+            const userAns = r.user_answer || '';
+            const correctAns = r.answer;
+            answerHtml = `
+                <div class="d-flex gap-2 flex-wrap">
+                    ${options.map((opt, i) => {
+                        let btnClass = "btn btn-outline-primary";
+                        if (userAns === opt && userAns === correctAns) {
+                            btnClass += " border-success text-success fw-bold";
+                        } else if (userAns === opt && userAns !== correctAns) {
+                            btnClass += " border-danger text-danger fw-bold";
+                        } else if (opt === correctAns) {
+                            btnClass += " border-success text-success";
+                        }
+                        return `<span class="${btnClass}" style="min-width:70px;pointer-events:none;">
+                            ${optionLabels[i]}. ${opt}
+                        </span>`;
+                    }).join('')}
+                </div>
+                <div class="mt-1">
+                    <span>你的答案：${userAns || '未作答'}</span>
+                    <span class="ms-3">正确答案：${correctAns}</span>
+                </div>
+            `;
+        } else if (r.type === 'addsub2' || r.type === 'addsub3') {
             answerHtml = `
                 <span>你的答案：加 ${r.user_answer[0] ?? ''}，减 ${r.user_answer[1] ?? ''}</span>
                 <span class="ms-3">正确答案：加 ${r.answer[0]}，减 ${r.answer[1]}</span>
@@ -92,13 +127,24 @@ function formatAnswer(type, ans) {
                 <span class="ms-3">正确答案：${r.answer}</span>
             `;
         }
+        // 题干兼容
+        let stem = '';
+        if (typeof r.stem !== 'undefined' && r.stem !== null) {
+            stem = r.stem;
+        } else if (typeof r.question !== 'undefined' && r.question !== null) {
+            stem = r.question;
+        } else if (r.type === '4div4_choice' && typeof r.A !== 'undefined' && typeof r.B !== 'undefined') {
+            stem = `${r.A} ÷ ${r.B} = ?`;
+        } else {
+            stem = '';
+        }
         list.innerHTML += `
             <div class="card mb-2 quiz-card" style="max-width: 480px;">
                 <div class="card-body py-2">
                     <div class="row align-items-center">
                         <div class="col-auto d-flex align-items-center">
                             <span class="badge bg-secondary me-3">题${r.idx}</span>
-                            <span class="quiz-stem">${r.stem}</span>
+                            <span class="quiz-stem">${stem}</span>
                         </div>
                         <div class="col text-end">
                             ${r.is_correct

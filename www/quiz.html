@@ -30,17 +30,42 @@
 <script>
 // 题型生成函数示例（可根据需要扩展）
 function generateQuestion(type, id) {
-    if (type === 'mul2x1') {
-        // 2位数 × 1位数
-        const a = Math.floor(Math.random() * 90 + 10);
-        const b = Math.floor(Math.random() * 9 + 1);
+    if (type === '4div4_choice') {
+        // 四位数除法速算选择题
+        function randInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+        function randFloat(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+        function shuffle(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+        const A = randInt(1000, 9999);
+        const B = randInt(1000, 9999);
+        const result = +(A / B).toFixed(2);
+        const optionsSet = new Set([result]);
+        while (optionsSet.size < 4) {
+            let noise = +(result + randFloat(-2, 2)).toFixed(2);
+            if (noise !== result && noise > 0) {
+                optionsSet.add(noise);
+            }
+        }
+        const options = shuffle(Array.from(optionsSet).map(n => n.toFixed(2)));
         return {
             id,
             type,
-            stem: `${a} × ${b} = `,
-            answer: (a * b).toString()
+            A,
+            B,
+            question: `${A} ÷ ${B} = ?`,
+            answer: result.toFixed(2),
+            options
         };
-    } else if (type === 'addsub2') {
+    } else if (type === 'mul2x1') {
         // 两位数加减混合，答两个
         const a = Math.floor(Math.random() * 90 + 10);
         const b = Math.floor(Math.random() * 90 + 10);
@@ -92,7 +117,24 @@ function renderQuestions(questions) {
     list.innerHTML = '';
     questions.forEach((q, idx) => {
         let inputHtml = '';
-        if (q.type === 'addsub2' || q.type === 'addsub3') {
+        if (q.type === '4div4_choice') {
+            // 渲染四除四选择题
+            const optionLabels = ['A', 'B', 'C', 'D'];
+            let saved = localStorage.getItem('quickmath-answer_' + q.id) || '';
+            inputHtml = `
+                <div class="d-flex justify-content-end gap-2 flex-wrap">
+                    ${q.options.map((opt, i) => `
+                        <button type="button"
+                            class="btn btn-outline-primary quiz-choice-btn${saved === opt ? ' active' : ''}"
+                            data-qid="${q.id}"
+                            data-value="${opt}"
+                            style="min-width:56px"
+                        >${optionLabels[i]}. ${opt}</button>
+                    `).join('')}
+                </div>
+                <input type="hidden" name="answer_${q.id}" value="${saved}">
+            `;
+        } else if (q.type === 'addsub2' || q.type === 'addsub3') {
             inputHtml = `
                 <div class="d-flex justify-content-end gap-2">
                     <input type="text" class="form-control answer-input quiz-input" name="answer_${q.id}_1" autocomplete="off" placeholder="加">
@@ -118,13 +160,15 @@ function renderQuestions(questions) {
                 </div>
             `;
         }
+        // 题干兼容
+        let stem = q.stem !== undefined ? q.stem : (q.question || '');
         list.innerHTML += `
-            <div class="card mb-3 quiz-card mx-auto" style="max-width: 520px;">
+            <div class="card mb-3 quiz-card mx-auto" style="max-width: 600px;">
                 <div class="card-body py-3">
                     <div class="row align-items-center">
                         <div class="col-auto d-flex align-items-center">
                             <span class="badge bg-secondary me-3">题${idx + 1}</span>
-                            <span class="quiz-stem">${q.stem}</span>
+                            <span class="quiz-stem">${stem}</span>
                         </div>
                         <div class="col text-end">
                             ${inputHtml}
@@ -133,6 +177,22 @@ function renderQuestions(questions) {
                 </div>
             </div>
         `;
+    });
+
+    // 绑定选择题按钮事件
+    document.querySelectorAll('.quiz-choice-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const qid = this.getAttribute('data-qid');
+            const value = this.getAttribute('data-value');
+            // 取消同题其他按钮高亮
+            document.querySelectorAll(`.quiz-choice-btn[data-qid="${qid}"]`).forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            // 设置隐藏域
+            const hidden = document.querySelector(`input[name="answer_${qid}"]`);
+            if (hidden) hidden.value = value;
+            // 保存到localStorage
+            localStorage.setItem('quickmath-answer_' + qid, value);
+        });
     });
 }
 
@@ -171,7 +231,7 @@ function renderQuestions(questions) {
         e.preventDefault();
         // 保存当前答案
         const answers = {};
-        document.querySelectorAll('.answer-input').forEach(input => {
+        document.querySelectorAll('input[name^="answer_"]').forEach(input => {
             answers[input.name] = input.value;
         });
         // 记录用时

@@ -124,7 +124,16 @@ function renderHistoryDetail(record, idx) {
                 <div class="row align-items-center">
                     <div class="col-auto d-flex align-items-center">
                         <span class="badge bg-secondary me-3">题${i + 1}</span>
-                        <span class="quiz-stem">${q.stem}</span>
+                        <span class="quiz-stem">${
+                            typeof q.stem !== 'undefined' && q.stem !== null
+                                ? q.stem
+                                : (typeof q.question !== 'undefined' && q.question !== null
+                                    ? q.question
+                                    : (q.type === '4div4_choice' && typeof q.A !== 'undefined' && typeof q.B !== 'undefined'
+                                        ? `${q.A} ÷ ${q.B} = ?`
+                                        : '')
+                                  )
+                        }</span>
                     </div>
                     <div class="col text-end">
                         ${is_correct
