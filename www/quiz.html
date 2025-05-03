@@ -66,6 +66,16 @@ function generateQuestion(type, id) {
             options
         };
     } else if (type === 'mul2x1') {
+        // 两位数 × 一位数乘法
+        const a = Math.floor(Math.random() * 90 + 10); // 10~99
+        const b = Math.floor(Math.random() * 9 + 1);   // 1~9
+        return {
+            id,
+            type,
+            stem: `${a} × ${b} = `,
+            answer: (a * b).toString()
+        };
+    } else if (type === 'addsub2') {
         // 两位数加减混合，答两个
         const a = Math.floor(Math.random() * 90 + 10);
         const b = Math.floor(Math.random() * 90 + 10);
@@ -161,7 +171,7 @@ function renderQuestions(questions) {
             `;
         }
         // 题干兼容
-        let stem = q.stem !== undefined ? q.stem : (q.question || '');
+        let stem = typeof q.stem === "string" ? q.stem : (q.question || '');
         list.innerHTML += `
             <div class="card mb-3 quiz-card mx-auto" style="max-width: 600px;">
                 <div class="card-body py-3">
